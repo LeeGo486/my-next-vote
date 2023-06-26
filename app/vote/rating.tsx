@@ -2,40 +2,65 @@
 import './vote.css'
 import React, {useRef, useEffect, useState} from 'react';
 import {RateData} from "@/app/types/rateData";
-import { useRouter } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation'
 
 const LOCAL_KEY = 'rating'
 const emojis = ['🤬', '😰', '🤨', '😄', '🥰']
 let voted:Record<string, number> = {}
 
 export default function Rating() {
-  const emojiWrapper = useRef<HTMLDivElement>(null);
-  const ref = useRef<HTMLInputElement | null>(null);
-  const myRate = useRef<number>(0)
+  const emojiWrapper = useRef<HTMLDivElement>(null)
 
-  const router = useRouter();
+  const pathName = usePathname()
+  const searchParams = useSearchParams()
   const [path, setPath] = useState('')
+  const [myRate, setMyRate] = useState(0)
 
 
   useEffect(() => {
-    setPath('');
+
+    setPath(pathName)
+
     const stored = localStorage.getItem(LOCAL_KEY)
     if (stored) {
       voted = JSON.parse(stored)
-      myRate.current = voted[path] || 0
+      setMyRate(voted[path] || 0)
     }
-  }, [router]);
 
-  const voteChange = (event :React.ChangeEvent<HTMLInputElement>):void => {
-    const selectedRating = parseInt(event.target.value);
+    if (myRate) { }
+
+  }, [pathName, searchParams]);
+
+
+  const voteChange = async (event :React.ChangeEvent<HTMLInputElement>) => {
+    setMyRate(parseInt(event.target.value))
 
     emojiWrapper.current?.scrollTo({
-      top: (selectedRating - 1) * emojiWrapper.current.clientHeight,
+      top: myRate * emojiWrapper.current.clientHeight,
       behavior: 'smooth'
     })
 
-    const key = 'r' + selectedRating as keyof RateData
+    const key = 'r' + myRate as keyof RateData
     const oldRate = voted[path] || 0
+
+    voted[path] = myRate
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(voted))
+    try {
+      const data = await fetch('/api/rating',  {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: path,
+          rate: myRate,
+          oldRate
+        }),
+      })
+
+    } catch (e) {
+
+    }
   }
 
   return (
@@ -53,8 +78,8 @@ export default function Rating() {
         <div className="flex flex-row-reverse items-center justify-center rating" onChange={voteChange}>
             {
                 ['5', '4', '3', '2', '1'].map((i, index) => {
-                    return <label className="flex items-center justify-center p-1">
-                        <input className="w-8 h-8" type="radio" name="rating" value={i} ref={ref} v-model="myRate" />{i}
+                    return <label className="flex items-center justify-center p-1" key={i}>
+                        <input className="w-8 h-8" type="radio" name="rating" value={i} />{i}
                     </label>
                 })
             }
