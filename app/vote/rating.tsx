@@ -4,9 +4,9 @@ import React, {useRef, useEffect, useState} from 'react';
 import {RateData} from "@/app/types/rateData";
 import { useRouter } from 'next/navigation';
 
+const LOCAL_KEY = 'rating'
 const emojis = ['🤬', '😰', '🤨', '😄', '🥰']
 let voted:Record<string, number> = {}
-
 
 export default function Rating() {
   const emojiWrapper = useRef<HTMLDivElement>(null);
@@ -19,18 +19,23 @@ export default function Rating() {
 
   useEffect(() => {
     setPath('');
+    const stored = localStorage.getItem(LOCAL_KEY)
+    if (stored) {
+      voted = JSON.parse(stored)
+      myRate.current = voted[path] || 0
+    }
   }, [router]);
 
   const voteChange = (event :React.ChangeEvent<HTMLInputElement>):void => {
     const selectedRating = parseInt(event.target.value);
 
     emojiWrapper.current?.scrollTo({
-      top: selectedRating - 1 * emojiWrapper.current.clientHeight,
+      top: (selectedRating - 1) * emojiWrapper.current.clientHeight,
       behavior: 'smooth'
     })
 
     const key = 'r' + selectedRating as keyof RateData
-      const oldRate = voted[path] || 0
+    const oldRate = voted[path] || 0
   }
 
   return (
