@@ -1,65 +1,62 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import Redis from 'ioredis'
 import getRedisKey, {createNewRating, getHour} from '../../utils/index'
 import {RateData} from "@/app/types/rateData";
+import {Request} from "next/dist/compiled/@edge-runtime/primitives";
 
-const redis = new Redis(process.env.REDIS_URL as string)
+
 
 export async function GET(req: Request) {
-
-  const { pathname } = new URL(req.url)
+  const redis = new Redis(process.env.REDIS_URL as string)
 
   const { searchParams } = new URL(req.url)
-
   const uid = searchParams.get('uid')
 
-  // const redisKey = getRedisKey(uid)
-  // let data
-  //
-  // try {
-  //   data = await redis.get(redisKey)
-  //   res.status(200).json({ state: 'ok', message: 'success', data: data });
-  // } catch (e) {
-  //   res.status(400).json({ state: 'failed', message: (e as Error).message });
-  // }
-  // redis.quit()
+  if (!uid) {
+    return NextResponse.json({ data: createNewRating() }, { status: 200 });
+  }
 
+  const redisKey = getRedisKey(uid)
+  let stored
+  try {
 
-  // return data
-  // Do whatever you want
-  return NextResponse.json({ message: "Hello World: " + pathname }, { status: 200 });
+    const existingStored = await redis.get(redisKey)
+    stored = existingStored ? JSON.parse(existingStored): createNewRating()
+  } catch (e) {
+
+    return NextResponse.json({ data: {} }, { status: 500 });
+  }
+  redis.quit()
+
+  // const newHeaders = new Headers(req.headers)
+  // newHeaders.set('content-type', 'application/json')
+  // newHeaders.set('cache-control', 'public, s-maxage=1800, stale-while-revalidate=2400')
+
+  return NextResponse.json({ data: stored }, { status: 200 });
 }
 
-export async function POST(req: NextRequest) {
-  console.info(JSON.stringify(req))
-  const { param } = await req.json()
-  console.info(JSON.stringify(req))
-  console.log(param)
+export async function POST(req: Request) {
+  const redis = new Redis(process.env.REDIS_URL as string)
+  const param = await req.json()
   const redisKey = getRedisKey(param.uid)
-  let data
 
+  let stored
   try {
-    let stored = await redis.get(redisKey)
-    data = stored ? JSON.parse(stored): createNewRating()
+    const existingStored = await redis.get(redisKey)
+    stored = existingStored ? JSON.parse(existingStored): createNewRating()
   } catch (e) {
-    return NextResponse.json({ message: "Hello World: " + e }, { status: 500 });
+    return NextResponse.json({ message: e }, { status: 500 })
   }
 
-  const key = `r${param.rate}` as keyof RateData
-  data[key] += 1
-
-  if (param.oldRate) {
-    const key = `r${param.rate}` as keyof RateData
-    data[key] -= 1
-  }
+  const key = `r${ param.rate }` as keyof RateData
+  stored[key] += 1
 
   const hour = getHour(Date.now())
-  const stored = JSON.stringify(data)
 
   await Promise.all([
-    redis.set(redisKey, stored),
-    redis.set(`${param.uid}_${hour}`, stored, 'EX', 86400 *30)
+    redis.set(redisKey, JSON.stringify(stored)),
+    redis.set(`${param.uid}_${hour}`, JSON.stringify(stored), 'EX', 86400 *30)
   ])
   redis.quit()
-  return data
+  return NextResponse.json({ data: stored }, { status: 200 })
 }
