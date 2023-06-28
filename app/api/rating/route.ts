@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import Redis from 'ioredis'
+import { NextResponse } from "next/server";
+
 import getRedisKey, {createNewRating, getHour} from '../../utils/index'
+import { rateLimit } from '@/lib/redis'
 import {RateData} from "@/app/types/rateData";
-import {Request} from "next/dist/compiled/@edge-runtime/primitives";
-
-
 
 export async function GET(req: Request) {
+
   const redis = new Redis(process.env.REDIS_URL as string)
 
   const { searchParams } = new URL(req.url)
@@ -17,6 +17,14 @@ export async function GET(req: Request) {
   }
 
   const redisKey = getRedisKey(uid)
+  //Upstash rate limit
+  const { success } = await rateLimit.limit(redisKey)
+  if (!success) {
+    return new Response('Too Many Requests', {
+      status: 429,
+    })
+  }
+
   let stored
   try {
 
@@ -27,10 +35,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ data: {} }, { status: 500 });
   }
   redis.quit()
-
-  // const newHeaders = new Headers(req.headers)
-  // newHeaders.set('content-type', 'application/json')
-  // newHeaders.set('cache-control', 'public, s-maxage=1800, stale-while-revalidate=2400')
 
   return NextResponse.json({ data: stored }, { status: 200 });
 }
@@ -60,3 +64,5 @@ export async function POST(req: Request) {
   redis.quit()
   return NextResponse.json({ data: stored }, { status: 200 })
 }
+
+
