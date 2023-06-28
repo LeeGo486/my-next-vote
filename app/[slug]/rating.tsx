@@ -1,9 +1,10 @@
 'use client'
 import './vote.css'
-import React, {useRef, useEffect, useState} from 'react';
-import {RateData} from "@/app/types/rateData";
+import React, {useRef, useEffect, useState} from 'react'
+import {RateData} from "@/app/types/rateData"
 import { usePathname } from 'next/navigation'
-import {createNewRating} from "@/app/utils";
+import {createNewRating} from "@/app/utils"
+import {motion, useAnimation} from "framer-motion"
 
 const LOCAL_KEY = 'rating'
 const emojis = ['🤬', '😰', '🤨', '😄', '🥰']
@@ -15,6 +16,8 @@ export default function Rating() {
   const [rate, setRate] = useState(0)
   const [totalRate, setTotalRate] = useState(0)
   const pathName = usePathname()
+  // 创建 animation controller
+  const controls = useAnimation();
 
   useEffect(() => {
 
@@ -31,14 +34,21 @@ export default function Rating() {
       calculateTotalRanks(rateData)
     })
 
-
   }, [pathName]);
 
   const wrapperEmoji = (rate :number) => {
-    emojiWrapper.current?.scrollTo({
-      top: (rate - 1) * emojiWrapper.current.clientHeight,
-      behavior: 'smooth'
-    })
+    // emojiWrapper.current?.scrollTo({
+    //   top: (rate - 1) * emojiWrapper.current.clientHeight,
+    //   behavior: 'smooth'
+    // })
+
+
+    const emojiNum = rate === undefined ? 3: rate
+
+    if(emojiWrapper.current) {
+      controls.start({y: (emojiNum - 1) * - emojiWrapper.current.clientHeight}).then(r => {
+      })
+     }
   }
 
   const calculateTotalRanks = (rateData: RateData) => {
@@ -55,9 +65,8 @@ export default function Rating() {
   const voteChange = async (event :React.ChangeEvent<HTMLInputElement>) => {
 
     const newRate = parseInt(event.target.value)
-
-    wrapperEmoji(newRate)
     setRate(newRate)
+    wrapperEmoji(newRate)
 
     const key = 'r' + newRate as keyof RateData
     const oldRate = voted[pathName] || 0
@@ -73,20 +82,26 @@ export default function Rating() {
 
     vote(param).then(res => {
       const { data :rateData } = res
-      console.info(`rateData is: ${rateData}`)
       calculateTotalRanks(rateData)
     })
   }
 
   return (
       <div className="vote-grid">
-        <div className="w-18 h-18 row-span-2 p-1
-                flex flex-col items-center justify-items-center
-                emoji-wrapper overflow-hidden"
-             ref={emojiWrapper}
-        >{
+
+         <div className="w-18 h-18 row-span-2 p-1
+                 flex flex-col items-center justify-items-center
+                 emoji-wrapper overflow-hidden"
+                     ref={emojiWrapper}
+         >{
           emojis.map((emoji, index) => (
-              <span className="text-7xl mb-2" key={emoji}>{rate? emoji: '🤨'}</span>
+              <motion.span
+                  className="text-7xl mb-2" key={emoji}
+                  initial={{ y: 0 }}
+                  animate={ controls }
+                  transition={{ ease: "backOut", duration: 1 }}
+              >{emoji}</motion.span>
+              // >{rate? emoji: '🤨'}</motion.span>
           ))
         }</div>
         <div className="text-center leading-8">Your vote: {rate ? rate :'❓'}</div>
