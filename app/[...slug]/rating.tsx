@@ -42,12 +42,10 @@ export default function Rating() {
     //   behavior: 'smooth'
     // })
 
-
+    // 初始化时，默认第三个emoji
     const emojiNum = rate === undefined ? 3: rate
-
     if(emojiWrapper.current) {
-      controls.start({y: (emojiNum - 1) * - emojiWrapper.current.clientHeight}).then(r => {
-      })
+      controls.start({y: (emojiNum - 1) * - emojiWrapper.current.clientHeight}).then(r => {})
      }
   }
 
