@@ -6,9 +6,7 @@ import { rateLimit } from '@/lib/redis'
 import {RateData} from "@/app/types/rateData";
 
 export async function GET(req: Request) {
-
-  const redis = new Redis(process.env.REDIS_URL as string)
-
+  let stored
   const { searchParams } = new URL(req.url)
   const uid = searchParams.get('uid')
 
@@ -17,17 +15,14 @@ export async function GET(req: Request) {
   }
 
   const redisKey = getRedisKey(uid)
-  //Upstash rate limit
+  //Up-stash rate limit
   const { success } = await rateLimit.limit(redisKey)
   if (!success) {
-    return new Response('Too Many Requests', {
-      status: 429,
-    })
+    return NextResponse.json({ message: 'Too Many Requests' }, { status: 429 })
   }
 
-  let stored
+  const redis = new Redis(process.env.REDIS_URL as string)
   try {
-
     const existingStored = await redis.get(redisKey)
     stored = existingStored ? JSON.parse(existingStored): createNewRating()
   } catch (e) {
@@ -43,6 +38,12 @@ export async function POST(req: Request) {
   const redis = new Redis(process.env.REDIS_URL as string)
   const param = await req.json()
   const redisKey = getRedisKey(param.uid)
+
+  //Up-stash rate limit
+  const { success } = await rateLimit.limit(redisKey)
+  if (!success) {
+    return NextResponse.json({ message: 'Too Many Requests' }, { status: 429 })
+  }
 
   let stored
   try {

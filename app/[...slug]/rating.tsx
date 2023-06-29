@@ -4,7 +4,7 @@ import React, {useRef, useEffect, useState} from 'react'
 import {RateData} from "@/app/types/rateData"
 import { usePathname } from 'next/navigation'
 import {createNewRating} from "@/app/utils"
-import {motion, useAnimation} from "framer-motion"
+import {AnimatePresence, motion, useAnimation} from "framer-motion"
 
 const LOCAL_KEY = 'rating'
 const emojis = ['🤬', '😰', '🤨', '😄', '🥰']
@@ -15,6 +15,7 @@ export default function Rating() {
   const emojiWrapper = useRef<HTMLDivElement>(null)
   const [rate, setRate] = useState(0)
   const [totalRate, setTotalRate] = useState(0)
+  const [errMsg, setErrMsg] = useState('')
   const pathName = usePathname()
   // 创建 animation controller
   const controls = useAnimation();
@@ -29,11 +30,13 @@ export default function Rating() {
       wrapperEmoji(voted[pathName])
     }
 
-    getRemoteVoteData(pathName).then( res => {
+    getRemoteVoteData(pathName).then(res => {
       const { data :rateData } = res
-      calculateTotalRanks(rateData)
-    })
+      const { message } = res
 
+      rateData && calculateTotalRanks(rateData)
+      message && setErrMsg(message)
+    })
   }, [pathName]);
 
   const wrapperEmoji = (rate :number) => {
@@ -45,13 +48,14 @@ export default function Rating() {
     // 初始化时，默认第三个emoji
     const emojiNum = rate === undefined ? 3: rate
     if(emojiWrapper.current) {
-      controls.start({y: (emojiNum - 1) * - emojiWrapper.current.clientHeight}).then(r => {})
+      controls.start({y: (emojiNum - 1) * - emojiWrapper.current.clientHeight}).then(r => {console.info(`r is: ${r}`)})
      }
   }
 
   const calculateTotalRanks = (rateData: RateData) => {
 
     setTotalRate(0)
+    setErrMsg('')
 
     options.map(i => {
       const key = 'r' + i as keyof RateData
@@ -66,7 +70,6 @@ export default function Rating() {
     setRate(newRate)
     wrapperEmoji(newRate)
 
-    const key = 'r' + newRate as keyof RateData
     const oldRate = voted[pathName] || 0
 
     voted[pathName] = newRate
@@ -79,8 +82,12 @@ export default function Rating() {
     }
 
     vote(param).then(res => {
+
       const { data :rateData } = res
-      calculateTotalRanks(rateData)
+      const { message } = res
+
+      rateData && calculateTotalRanks(rateData)
+      message && setErrMsg(message)
     })
   }
 
@@ -94,41 +101,53 @@ export default function Rating() {
          >{
           emojis.map((emoji, index) => (
               <motion.span
-                  className="text-7xl mb-2" key={emoji}
+                  className="text-7xl mb-2" key={index}
                   initial={{ y: 0 }}
                   animate={ controls }
                   transition={{ ease: "backOut", duration: 1 }}
               >{emoji}</motion.span>
-              // >{rate? emoji: '🤨'}</motion.span>
           ))
         }</div>
-        <div className="text-center leading-8">Your vote: {rate ? rate :'❓'}</div>
+        <motion.div className="text-center leading-8"
+                    layout
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      opacity: { ease: "anticipate" },
+                      layout: { duration: 1 }
+                    }}
+        >Your vote: {rate ? rate :'❓'}</motion.div>
         <div className="flex flex-row-reverse items-center justify-center rating" onChange={voteChange}>
             {
-              options.map((i, index) => {
-                return <label className="flex items-center justify-center p-1" key={i}>
+              options.map((i) => {
+                return <motion.label
+                    className="flex items-center justify-center p-1" key={i}
+                    whileHover={{ scale: 1.2 }}
+                >
                   <input className="w-8 h-8" checked={rate === i}
                          type="radio" name="rating" value={i} readOnly />{i}
-                </label>
+                </motion.label>
               })
             }
         </div>
         <div className="col-span-2 text-center pt-1">Total Ranks is: {totalRate}</div>
+        <AnimatePresence>
+          {errMsg && <motion.div className="col-span-2 text-center text-red-500"
+                                 initial={{ opacity: 0, x: -100 }}
+                                 animate={{ opacity: 1, x: 0 }}
+                                 exit={{ opacity: 0, x:100 }}
+                                 transition={{ type: "spring", duration: 0.7 }}
+          >提示信息: {errMsg}</motion.div>}
+        </AnimatePresence>
       </div>
   )
 }
-
-
 async function getRemoteVoteData(uid :string) {
   const response = await fetch('/api/rating?uid=' + uid)
-
-  if(response.status === 200) {
-    return await response.json();
-  }
-  return createNewRating()
+  return await response.json();
 }
 
 async function vote(param = {}) {
+
   try {
     const response = await fetch('/api/rating',  {
       method: 'POST',
@@ -138,12 +157,9 @@ async function vote(param = {}) {
       body: JSON.stringify(param),
     })
 
-    if(response.status === 200) {
-      return await response.json();
-    }
+    return await response.json()
   } catch (e) {
-
+    console.info(`vote error message is: ${JSON.stringify(e)}`)
   }
-
   return createNewRating()
 }
