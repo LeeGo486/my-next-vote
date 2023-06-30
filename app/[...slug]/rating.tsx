@@ -123,7 +123,8 @@ export default function Rating() {
           options.map((i) => {
             return <motion.label
               className="flex items-center justify-center p-1" key={i}
-              whileHover={{scale: 1.2}}
+              whileHover={{scale: 1.1}}
+              whileTap={{scale: .9}}
             >
               <input className="w-8 h-8" checked={rate === i}
                      type="radio" name="rating" value={i} readOnly/>{i}
@@ -136,7 +137,7 @@ export default function Rating() {
         {errMsg && <motion.div className="col-span-2 text-center text-red-500"
                                initial={{opacity: 0, x: -100}}
                                animate={{opacity: 1, x: 0}}
-                               exit={{opacity: 0, x: 100}}
+                               exit={{opacity: 0, x: 100, transition: {duration: 0.3}}}
                                transition={{type: "spring", duration: 0.7}}
         >提示信息: {errMsg}</motion.div>}
       </AnimatePresence>
