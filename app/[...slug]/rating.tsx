@@ -8,7 +8,7 @@ import {AnimatePresence, motion, useAnimation} from "framer-motion"
 
 const LOCAL_KEY = 'rating'
 const emojis = ['🤬', '😰', '🤨', '😄', '🥰']
-const options = [5, 4, 3, 2, 1]
+const options = [1, 2, 3, 4, 5]
 let voted: Record<string, number> = {}
 
 export default function Rating() {
@@ -94,54 +94,55 @@ export default function Rating() {
   }
 
   return (
-    <div className="vote-grid">
+      <div className="vote-grid">
 
-      <div className="w-18 h-18 row-span-2 p-1
+        <div className="w-18 h-18 row-span-2 p-1
                  flex flex-col items-center justify-items-center
                  emoji-wrapper overflow-hidden"
-           ref={emojiWrapper}
-      >{
-        emojis.map((emoji, index) => (
-          <motion.span
-            className="text-7xl mb-2" key={index}
-            initial={{y: 0}}
-            animate={controls}
-            transition={{ease: "backOut", duration: 1}}
-          >{emoji}</motion.span>
-        ))
-      }</div>
-      <motion.div className="text-center leading-8"
-                  layout
-                  animate={{opacity: 1}}
-                  transition={{
-                    opacity: {ease: "anticipate"},
-                    layout: {duration: 1}
-                  }}
-      >Your vote: {rate ? rate : '❓'}</motion.div>
-      <div className="flex flex-row-reverse items-center justify-center rating" onChange={voteChange}>
-        {
-          options.map((i) => {
-            return <motion.label
-              className="flex items-center justify-center p-1" key={i}
-              whileHover={{scale: 1.1}}
-              whileTap={{scale: .9}}
-            >
-              <input className="w-8 h-8" checked={rate === i}
-                     type="radio" name="rating" value={i} readOnly/>{i}
-            </motion.label>
-          })
-        }
+             ref={emojiWrapper}
+        >{
+          emojis.map((emoji, index) => (
+              <motion.span
+                  className="text-7xl mb-2" key={index}
+                  initial={{y: 0}}
+                  animate={controls}
+                  transition={{ease: "backOut", duration: 1}}
+              >{emoji}</motion.span>
+          ))
+        }</div>
+        <motion.div className="text-center leading-8"
+                    layout
+                    animate={{opacity: 1}}
+                    transition={{
+                      opacity: {ease: "anticipate"},
+                      layout: {duration: 1}
+                    }}
+        >Your vote: {rate ? rate : '❓'}</motion.div>
+        <motion.div className="rating justify-center items-center" onChange={voteChange} layout>
+          {
+            options.map((i) => {
+              return (
+                  <motion.input type="radio" name="rating" value={i} key={i}
+                                className={`mask mask-star-2 bg-orange-400 w-10 h-10`}
+                                checked={rate === i} readOnly={true}
+                                whileHover={{scale: 1.2}}
+                                whileTap={{scale: .95}}
+                                initial={{scale: 1}}
+                  />
+              )
+            })
+          }
+        </motion.div>
+        <div className="col-span-2 text-center pt-1">Total Ranks is: {totalRate}</div>
+        <AnimatePresence>
+          {errMsg && <motion.div className="col-span-2 text-center text-red-500"
+                                 initial={{opacity: 0, x: -100}}
+                                 animate={{opacity: 1, x: 0}}
+                                 exit={{opacity: 0, x: 100, transition: {duration: 0.3}}}
+                                 transition={{type: "spring", duration: 0.7}}
+          >提示信息: {errMsg}</motion.div>}
+        </AnimatePresence>
       </div>
-      <div className="col-span-2 text-center pt-1">Total Ranks is: {totalRate}</div>
-      <AnimatePresence>
-        {errMsg && <motion.div className="col-span-2 text-center text-red-500"
-                               initial={{opacity: 0, x: -100}}
-                               animate={{opacity: 1, x: 0}}
-                               exit={{opacity: 0, x: 100, transition: {duration: 0.3}}}
-                               transition={{type: "spring", duration: 0.7}}
-        >提示信息: {errMsg}</motion.div>}
-      </AnimatePresence>
-    </div>
   )
 }
 

@@ -11,18 +11,22 @@
 
 }
 
-.rating :where(input[type="radio"]) {
-    background-color: var(--color-muted)
-
-}
-.rating :where(input) :checked::after {
-    border-color: #f97316;
- }
-
-.rating :where(input)~input {
-    background-color: var(--color-active);
+.mask-star-2 {
+    mask-size: 87.5%;
 }
 
-.rating :where(input[type="radio"]) :hover {
-    background-color: var(--color-hover);
-}
+/*.rating :where(input[type="radio"]) {*/
+/*    background-color: var(--color-muted)*/
+
+/*}*/
+/*.rating :where(input) :checked::after {*/
+/*    border-color: #f97316;*/
+/* }*/
+
+/*.rating :where(input)~input {*/
+/*    background-color: var(--color-active);*/
+/*}*/
+
+/*.rating :where(input[type="radio"]) :hover {*/
+/*    background-color: var(--color-hover);*/
+/*}*/
