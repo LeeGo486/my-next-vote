@@ -1,4 +1,3 @@
-import './vote.css'
 import Rating from './rating'
 
 export default function Home() {

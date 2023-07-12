@@ -1,5 +1,5 @@
 'use client'
-import './vote.css'
+import './page.css'
 import React, {useEffect, useRef, useState} from 'react'
 import {RateData} from "@/app/types/rateData"
 import {usePathname} from 'next/navigation'
